@@ -119,6 +119,9 @@ exec(char *path, char **argv)
     if(*s == '/')
       last = s+1;
   safestrcpy(p->name, last, sizeof(p->name));
+
+  // Add default ticket value
+  //p->ticket_number = 1;
     
   // Commit to the user image.
   oldpagetable = p->pagetable;
@@ -129,9 +132,6 @@ exec(char *path, char **argv)
   proc_freepagetable(oldpagetable, oldsz);
 
   return argc; // this ends up in a0, the first argument to main(argc, argv)
-
-  // Add default ticket value
-  p->ticket_number = 1;
 
  bad:
   if(pagetable)

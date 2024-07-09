@@ -127,6 +127,9 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  p->ticket_number = 1;
+  p->ticks = 0;
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -324,7 +327,9 @@ fork(void)
   np->state = RUNNABLE;
 
   // Add ticket number to son
+  printf("acquiring fork lock");
   acquire(&p->lock);
+  printf("acquired fork lock");
   np->ticket_number = p->ticket_number;
   release(&p->lock);
 
@@ -466,6 +471,7 @@ scheduler(void)
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
         total_tickets += p->ticket_number;
+        printf("Process %d is RUNNABLE with %d tickets\n", p->pid, p->ticket_number);
       }
       release(&p->lock);
     }
@@ -480,20 +486,20 @@ scheduler(void)
           iter += p->ticket_number;
 
           if (iter > winning_ticket) {
-            // Switch to chosen process.  It is the process's job
-            // to release its lock and then reacquire it
-            // before jumping back to us.
+            printf("Process %d is winner with %d tickets\n", p->pid, p->ticket_number);
             p->state = RUNNING;
             c->proc = p;
-            swtch(&c->context, &p->context);
 
-            // Process is done running for now.
-            // It should have changed its p->state before coming back.
+            p->ticks++;
+
+            swtch(&c->context, &p->context);
             c->proc = 0;
-            release(&p->lock);
             break;
           }
         }
+
+        
+        release(&p->lock);
       }
     }
   }
