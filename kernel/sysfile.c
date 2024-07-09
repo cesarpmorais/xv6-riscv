@@ -503,3 +503,22 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_settickets(void)
+{
+  int number;
+  argint(0, &number);
+  
+  // Ensure the number of tickets is positive
+  if(number <= 0)
+    return -1;
+
+  // Get the current process
+  struct proc *p = myproc();
+
+  // Set the number of tickets for the process
+  p->ticket_number = number;
+
+  return 0;
+}
