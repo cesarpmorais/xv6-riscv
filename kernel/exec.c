@@ -130,6 +130,9 @@ exec(char *path, char **argv)
 
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
+  // Add default ticket value
+  p->ticket_number = 1;
+
  bad:
   if(pagetable)
     proc_freepagetable(pagetable, sz);

@@ -320,6 +320,12 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+
+  // Add ticket number to son
+  acquire(&p->lock);
+  np->ticket_number = p->ticket_number;
+  release(&p->lock);
+
   release(&np->lock);
 
   return pid;
@@ -452,21 +458,41 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
+    // Get total of tickets
+    int total_tickets = 0;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
+        total_tickets += p->ticket_number;
       }
       release(&p->lock);
+    }
+
+    if (total_tickets > 0) {
+      int winning_ticket = rand() % total_tickets;
+      int iter = 0;
+
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          iter += p->ticket_number;
+
+          if (iter > winning_ticket) {
+            // Switch to chosen process.  It is the process's job
+            // to release its lock and then reacquire it
+            // before jumping back to us.
+            p->state = RUNNING;
+            c->proc = p;
+            swtch(&c->context, &p->context);
+
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+            release(&p->lock);
+            break;
+          }
+        }
+      }
     }
   }
 }
